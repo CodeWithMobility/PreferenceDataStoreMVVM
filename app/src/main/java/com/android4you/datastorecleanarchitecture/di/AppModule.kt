@@ -18,6 +18,15 @@ import dagger.hilt.components.SingletonComponent
 import java.io.File
 import javax.inject.Singleton
 
+/***
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "user_preferences",
+    produceMigrations = { context ->
+        listOf(SharedPreferencesMigration(context, "old_shared_prefs_name"))
+    }
+)
+***/
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -30,7 +39,13 @@ object AppModule {
         return PreferenceDataStoreFactory.create(
             produceFile = {
                 File(context.filesDir, "datastore/$USER_SETTINGS_KEY.preferences_pb")
-            }
+            },
+//            migrations = listOf(
+//                SharedPreferencesMigration(
+//                    context,
+//                    "legacy_shared_prefs" // 🔁 Name of your old SharedPreferences (without `.xml`)
+//                )
+//            )
         )
     }
     @Provides
