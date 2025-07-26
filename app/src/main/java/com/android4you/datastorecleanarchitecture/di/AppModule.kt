@@ -1,6 +1,9 @@
 package com.android4you.datastorecleanarchitecture.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import com.android4you.datastorecleanarchitecture.data.repository.SettingsRepositoryImpl
 import com.android4you.datastorecleanarchitecture.domain.repository.ISettingsRepository
 import com.android4you.datastorecleanarchitecture.domain.usecases.GetUserSettingsUseCase
@@ -12,17 +15,29 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private const val USER_SETTINGS_KEY = "user_settings"
+
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            produceFile = {
+                File(context.filesDir, "datastore/$USER_SETTINGS_KEY.preferences_pb")
+            }
+        )
+    }
     @Provides
     @Singleton
     fun provideSettingsRepository(
-        @ApplicationContext context: Context
-    ): ISettingsRepository = SettingsRepositoryImpl(context)
+        dataStore: DataStore<Preferences>
+    ): ISettingsRepository = SettingsRepositoryImpl(dataStore)
 
     @Provides
     fun provideGetUserSettingsUseCase(
