@@ -1,5 +1,6 @@
 package com.android4you.datastorecleanarchitecture.presentation
 
+import app.cash.turbine.test
 import com.android4you.datastorecleanarchitecture.data.repository.FakeSettingsRepository
 import com.android4you.datastorecleanarchitecture.domain.usecases.GetUserSettingsUseCase
 import com.android4you.datastorecleanarchitecture.domain.usecases.UpdateDarkModeUseCase
@@ -7,40 +8,67 @@ import com.android4you.datastorecleanarchitecture.domain.usecases.UpdateLanguage
 import com.android4you.datastorecleanarchitecture.domain.usecases.UpdateUsernameUseCase
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
-    private val repo = FakeSettingsRepository()
-    private val get = GetUserSettingsUseCase(repo)
-    private val updateDark = UpdateDarkModeUseCase(repo)
-    private val updateLang = UpdateLanguageUseCase(repo)
-    private val updateName = UpdateUsernameUseCase(repo)
+    private val testDispatcher = StandardTestDispatcher()
+    private val repository = FakeSettingsRepository()
+    private val get = GetUserSettingsUseCase(repository)
+    private val updateDark = UpdateDarkModeUseCase(repository)
+    private val updateLang = UpdateLanguageUseCase(repository)
+    private val updateName = UpdateUsernameUseCase(repository)
+    private lateinit var viewModel: SettingsViewModel
 
-    private val viewModel = SettingsViewModel(get, updateDark, updateLang, updateName)
-
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        viewModel = SettingsViewModel(get, updateDark, updateLang, updateName)
+    }
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
     @Test
     fun `toggle dark mode updates setting`() = runTest {
-        viewModel.onDarkModeChange(true)
-        val result = viewModel.settings.first()
-        assertTrue(result.darkMode)
+
+        viewModel.settings.test {
+            skipItems(1)
+            viewModel.onDarkModeChange(true)
+            advanceUntilIdle()
+            assertTrue( awaitItem().darkMode)
+        }
+
     }
 
     @Test
     fun `update language changes value`() = runTest {
-        viewModel.onLanguageChange("hi")
-        val result = viewModel.settings.first()
-        assertEquals("hi", result.language)
+        viewModel.settings.test {
+            skipItems(1)
+            viewModel.onLanguageChange("hi")
+            advanceUntilIdle()
+            assertEquals("hi", awaitItem().language)
+        }
     }
 
     @Test
     fun `update username changes value`() = runTest {
-        viewModel.onUsernameChange("Manu")
-        val result = viewModel.settings.first()
-        assertEquals("Manu", result.username)
+        viewModel.settings.test {
+            skipItems(1)
+            viewModel.onUsernameChange("Manu")
+            advanceUntilIdle()
+            assertEquals("Manu", awaitItem().username)
+        }
     }
 }
